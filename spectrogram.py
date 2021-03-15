@@ -29,16 +29,27 @@ def plot_spectrogram(fname, step_dur, t_window, calibration=False):
     length = test_data.shape[0] / fs
     nsteps = int(length / step_dur)
 
-    rows = nsteps // 2
+    max_subplots = 8
+    nfigs = int(nsteps / max_subplots) + 1
+    subplot_rows = nsteps // 2
     if nsteps % 2 != 0:
-        rows += 1
-    fig, axs = plt.subplots(rows + 1, 2)
-    fig.canvas.set_window_title(fname)
+        subplot_rows += 1
+    subplots = [plt.subplots(max_subplots // 2, 2) for i in range(nfigs)]
+    for i, subplot in enumerate(subplots):
+        subplot[0].canvas.set_window_title(fname + f" {i}")
+        for ax in subplot[1].reshape(-1):
+            ax.set_yticks([250])
+        #     ax.grid()
+    current_fig = 0
+    axs = subplots[current_fig][1]
     for i, (f, t_seg, sxx) in enumerate(compute_spectrogram(test_data, fs, nsteps, step_dur)):
-        r = i
+        if i % max_subplots == 0 and i != 0:
+            current_fig += 1
+            axs = subplots[current_fig][1]
+        r = i - current_fig * max_subplots
         c = 0
-        if i > nsteps // 2:
-            r -= nsteps // 2 + 1
+        if int(i / (max_subplots // 2)) % 2 != 0:
+            r -= max_subplots // 2
             c += 1
         f_slice = np.where(f <= 600)
         if calibration:
@@ -48,9 +59,6 @@ def plot_spectrogram(fname, step_dur, t_window, calibration=False):
             axs[r, c].contourf(t_seg, f[f_slice], 10 * np.log10(sxx[f_slice, :][0]), 40, shading='auto',
                                cmap='twilight')
             axs[r, c].set_ylabel(f"{0.5 + i * 0.5} Hz", rotation=0, labelpad=25)
-    for ax in axs.reshape(-1):
-        ax.set_yticks([250])
-    #     ax.grid()
     plt.show()
 
 
@@ -88,7 +96,7 @@ if __name__ == "__main__":
                  "./wavfiles/Calibration_reverse_2.wav": [23.2, 113.1],
                  "./wavfiles/Test_reverse_2.wav": [2.5, 291.7]}
     for fname, t_wind in wav_files.items():
-        # if "Calibration" in fname:
-        #     plot_spectrogram(fname, 5, t_wind, calibration=True)
-        if "Calibration" not in fname:
-            plot_spectrogram(fname, 3, t_wind)
+        if "Calibration" in fname:
+            plot_spectrogram(fname, 5, t_wind, calibration=True)
+        # if "Calibration" not in fname:
+        #     plot_spectrogram(fname, 3, t_wind)
