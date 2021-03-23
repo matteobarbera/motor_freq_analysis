@@ -39,28 +39,30 @@ def process_tests():
     return freq_dict, thr_dict
 
 
-def plot_test_label(*args):
-    d = {'block': 'Block', 'sine': 'Sine', 'r': 'reverse', 'f': 'forward'}
-    return f'{d[args[0]]} {d[args[1]]}'
+def plot_test_label(*args: str):
+    d_label = {'block': 'Block', 'sine': 'Sine', 'r': 'reverse', 'f': 'forward'}
+    d_marker = {'block': '^', 'sine': 's'}
+    d_color = {('block', 'r'): 'k', ('block', 'f'): 'm', ('sine', 'r'): 'c', ('sine', 'f'): 'r'}
+    label = f'{d_label[args[0]]} {d_label[args[1]]}'
+    marker = f'{d_marker[args[0]]}'
+    color = f'{d_color[tuple([args[0], args[1]])]}'
+    return label, marker, color
 
 
 def plot_tests(data_dict: dict, test_range: str, error_bar: float):
     plt.figure(f'Chirp test for thrust {test_range}%')
     chirp_freq = list(range(11))
-    marker_type = ['^', 's', 'v', 'o']
-    color = ['k', 'm', 'c', 'r']
-    idx = 0
     for tname, tdata in data_dict.items():
         if test_range in tname:
-            label = plot_test_label(*tname.split('_'))
+            label, marker_type, color = plot_test_label(*tname.split('_'))
             if tdata.shape[1] == 2:
-                plt.errorbar(chirp_freq, tdata[:, 0], yerr=error_bar, label=label, color=color[idx], ls='--', marker=marker_type[idx],
-                             markevery=1)
-                plt.errorbar(chirp_freq, tdata[:, 1], yerr=error_bar, color=color[idx], ls='--', marker=marker_type[idx],
-                             markevery=1)
+                plt.errorbar(chirp_freq, tdata[:, 0], yerr=error_bar, label=label, color=color, ls='--',
+                             marker=marker_type, markevery=1, ms=10)
+                plt.errorbar(chirp_freq, tdata[:, 1], yerr=error_bar, color=color, ls='--',
+                             marker=marker_type, markevery=1, ms=10)
             else:
-                plt.errorbar(chirp_freq, tdata, yerr=error_bar, label=label, color=color[idx], ls='--', marker=marker_type[idx], markevery=1)
-            idx += 1
+                plt.errorbar(chirp_freq, tdata, yerr=error_bar, label=label, color=color, ls='--',
+                             marker=marker_type, markevery=1, ms=10)
     plt.legend()
     plt.title(f'Chirp test for thrust {test_range}%')
     plt.ylabel('Thrust [%]')
@@ -71,6 +73,8 @@ def plot_tests(data_dict: dict, test_range: str, error_bar: float):
 if __name__ == "__main__":
     calibration_csv = "./calibration.csv"
     freqs, thrs = process_tests()
+
+    plt.rcParams.update({'font.size': 18})
     plot_tests(thrs, '10-100', 4.5)
     plot_tests(thrs, '10-50', 4.5)
     plot_tests(thrs, '50-100', 4.5)
