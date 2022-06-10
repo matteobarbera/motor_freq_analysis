@@ -6,6 +6,8 @@ import numpy as np
 from scipy.io import wavfile
 from scipy.signal import spectrogram, windows
 
+from freq_to_thrust import prettify_plot
+
 
 def view_file(fname: str, t_window: list = None):
     """
@@ -27,6 +29,7 @@ def view_file(fname: str, t_window: list = None):
     plt.show()
 
 
+@prettify_plot()
 def plot_spectrogram(fname, step_dur, t_window, delta_f=None, calibration=False):
     fs, test_data = get_relevant_data(fname, t_window)
     length = test_data.shape[0] / fs
@@ -34,19 +37,23 @@ def plot_spectrogram(fname, step_dur, t_window, delta_f=None, calibration=False)
 
     max_subplots = 8
     nfigs = int(nsteps / max_subplots) + 1
-    subplot_rows = nsteps // 2
-    if nsteps % 2 != 0:
-        subplot_rows += 1
     subplots = [plt.subplots(max_subplots // 2, 2) for i in range(nfigs)]
     for i, subplot in enumerate(subplots):
         subplot[0].canvas.set_window_title(fname + f" {i}")
         for ax in subplot[1].reshape(-1):
-            ax.set_yticks([250])
+            # ax.set_yticks([250])
+            ax.set_yticks([0, 200, 400, 600])
+            ax.set_ylabel("Frequency [Hz]")
+            ax.set_xlabel("Time [s]")
         #     ax.grid()
     current_fig = 0
     axs = subplots[current_fig][1]
     for i, (f, t_seg, sxx) in enumerate(compute_spectrogram(test_data, fs, nsteps, step_dur)):
         if i % max_subplots == 0 and i != 0:
+            subplots[0][0].tight_layout()
+            subplots[0][0].subplots_adjust(left=0.229, wspace=0.233, bottom=0.088, top=0.94, hspace=0.83)
+            plt.show()
+            quit()
             current_fig += 1
             axs = subplots[current_fig][1]
         r = i - current_fig * max_subplots
@@ -61,8 +68,15 @@ def plot_spectrogram(fname, step_dur, t_window, delta_f=None, calibration=False)
         else:
             axs[r, c].contourf(t_seg, f[f_slice], 10 * np.log10(sxx[f_slice, :][0]), 40,
                                cmap='twilight')
-            axs[r, c].set_ylabel(f"{round(i * delta_f, 2)} Hz", rotation=0, labelpad=25)
+            # axs[r, c].set_ylabel(f"{round(i * delta_f, 2)} Hz", rotation=0, labelpad=25)
+            axs[r, c].title.set_text(my_bold(f"Signal frequency: {round(i * delta_f, 2)} Hz"))
     plt.show()
+
+
+def my_bold(text):
+    string = str(text).split(" ")
+    bold_string = " ".join([r"$\bf{" + word + "}$" for word in string])
+    return bold_string
 
 
 def compute_spectrogram(test_data, fs, nsteps, lstep):
@@ -75,7 +89,7 @@ def compute_spectrogram(test_data, fs, nsteps, lstep):
         yield f, t_seg, sxx
 
 
-def get_relevant_data(fname, t_window):
+def get_relevant_data(fname, t_window=None):
     fs, data = wavfile.read(fname)
     start_t, end_t = [0, 0]
     if t_window is not None:
